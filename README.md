@@ -1,4 +1,4 @@
-# 网络安全学院学习笔记（Hexo 博客）
+#（hexo 博客）
 
 个人学习笔记博客，基于 [Hexo](https://hexo.io/) + [Butterfly 主题](https://github.com/jerryc127/hexo-theme-butterfly)，部署在 GitHub Pages。
 
@@ -21,38 +21,12 @@ blog/
    npm run publish          # 整理笔记 + 生成 + 部署上线
    npm run publish -- --local  # 只整理和本地生成，不部署（先本地看看效果）
    ```
-3. 脚本会自动：补充文章标题/日期/分类（默认"学习笔记"）→ 移入 `source/_posts/` → 生成静态页 → 推送到 GitHub Pages
-
-也可以直接在 ZCode 里说"把笔记发布到博客"，我来执行。
-
+3. 脚本会自动：补充文章标题/日期/分类（默认"学习笔记"）→ 移入 `source/_posts/` → 生成静态页 → 推送到 GitHub Page
 ## 本地预览
 
 ```bash
 npm run server    # 打开 http://localhost:4000/blog/
 ```
-
-## 文章 front-matter（可选）
-
-发布脚本会自动生成，若想手动控制可在笔记开头写：
-
-```markdown
----
-title: 文章标题
-date: 2026-09-15 10:00:00
-categories:
-  - 学习笔记      # 可改成 CTF / 工具 / 复现 等
-tags:
-  - web
-  - crypto
----
-```
-
-## 常见问题
-
-- **发布时报 git 推送错误**：多半是 GitHub 认证问题，见下方"GitHub 部署"
-- **改了主题配置不生效**：运行 `npx hexo clean` 后重新生成
-- **Trilium 导出是 zip 包**：解压后取里面的 `.md` 文件放进 `_notes/` 即可，子文件夹里的 md 也会被找到（当前脚本只扫 `_notes/` 根目录一层）
-
 ## GitHub 部署配置（首次需完成）
 
 1. 配置 git 身份：
