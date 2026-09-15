@@ -1,0 +1,45 @@
+# Butterfly 主题覆盖配置（只写与默认不同的项）
+# 完整配置参考: node_modules/hexo-theme-butterfly/_config.yml
+
+nav:
+  logo:
+  display_title: true
+  fixed: false
+  menu:
+    首页: / || fas fa-home
+    归档: /archives/ || fas fa-archive
+    标签: /tags/ || fas fa-tags
+    分类: /categories/ || fas fa-folder-open
+    关于: /about/ || fas fa-user
+
+index_img: 'https://picsum.photos/seed/网络安全学院/1200/500'
+default_top_img: 'https://picsum.photos/seed/notes-top/1200/300'
+
+local_search:
+  enable: true
+
+# 首页公告
+announcement:
+  content: 每天更新学习笔记，欢迎常来 📚
+
+# 关闭不蒜子统计（本地/刚建站时数字不准确）
+busuanzi:
+  site_uv: false
+  site_pv: false
+  site_post: false
+
+# 文章页显示目录
+toc:
+  post: true
+  page: false
+  number: true
+  expand: true
+
+# 显示字数统计（需要安装 hexo-wordcount，未装时自动省略）
+wordcount:
+  enable: false
+
+footer:
+  owner:
+    enable: true
+    since: 2026
