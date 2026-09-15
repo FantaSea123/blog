@@ -1,0 +1,15 @@
+:root {
+  --fluid-primary-color: #d85b47;
+  --fluid-primary-color-light: #ed836f;
+  --fluid-text-color: #292622;
+  --fluid-bg-color: #f4f1eb;
+}
+body { background: #f4f1eb; color: #292622; }
+.navbar { background: rgba(244,241,235,.94); box-shadow: 0 1px 0 rgba(41,38,34,.08); }
+.navbar-brand, .navbar-menu a { color: #292622 !important; }
+.banner { min-height: 500px; }
+.banner .mask { background: linear-gradient(110deg, rgba(28,25,21,.78), rgba(28,25,21,.2)); }
+.banner .banner-title { font-family: Georgia, "Songti SC", serif; letter-spacing: 0; }
+.post-content, .card, .archive-container { border-radius: 4px; }
+a { color: #d85b47; }
+.footer { background: #292622; }

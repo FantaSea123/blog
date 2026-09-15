@@ -3,11 +3,11 @@
 ## Source: https://github.com/hexojs/hexo/
 
 # Site
-title: 网络安全学院学习笔记
-subtitle: '每天进步一点点'
-description: '个人学习笔记博客：网络安全、CTF 与日常所学'
+title: "Fantasea's blog"
+subtitle: ''
+description: '学习、生活与值得记录的一切'
 keywords:
-author: jiangmaoyu
+author: Fantasea
 language: zh-CN
 timezone: Asia/Shanghai
 
@@ -96,7 +96,7 @@ ignore:
 # Extensions
 ## Plugins: https://hexo.io/plugins/
 ## Themes: https://hexo.io/themes/
-theme: butterfly
+theme: fluid
 
 # 本地搜索（hexo-generator-search）
 search:
