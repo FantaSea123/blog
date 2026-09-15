@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search> 
+  
+  
+    
+    <entry>
+      <title>我的第一篇学习笔记</title>
+      <link href="/blog/2026/09/15/20260915-%E6%88%91%E7%9A%84%E7%AC%AC%E4%B8%80%E7%AF%87%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+      <url>/blog/2026/09/15/20260915-%E6%88%91%E7%9A%84%E7%AC%AC%E4%B8%80%E7%AF%87%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/</url>
+      
+        <content type="html"><![CDATA[<p>这是从 Trilium 导出后自动发布的示例文章，用来验证整条发布流程。</p><h2 id="今天学了什么"><a href="#今天学了什么" class="headerlink" title="今天学了什么"></a>今天学了什么</h2><ul><li>Hexo 博客搭建</li><li>GitHub Pages 部署</li><li>Markdown 基础语法</li></ul><h2 id="待办"><a href="#待办" class="headerlink" title="待办"></a>待办</h2><ul><li><input disabled="" type="checkbox"> 把 Trilium 里的旧笔记陆续导出</li><li><input disabled="" type="checkbox"> 坚持每天一篇</li></ul><blockquote><p>从 Trilium 导出：选中笔记 → 右键 Export as Markdown → 保存到 <code>_notes/</code> 目录。</p></blockquote>]]></content>
+      
+      
+      <categories>
+          
+          <category> 学习笔记 </category>
+          
+      </categories>
+      
+      
+    </entry>
+    
+    
+  
+  
+</search>
