@@ -45,6 +45,9 @@ function buildPost(filename, raw) {
 
   let content = raw.replace(/\r\n/g, '\n').trimStart();
 
+  // 笔记里相对路径的本地图片（img/...），发布时统一改写为博客路径（/img/...）
+  content = content.replace(/(\]\(|src=")(img\/)/g, '$1/$2');
+
   // 已有 front-matter：确保 title/date 存在
   if (content.startsWith('---\n')) {
     const end = content.indexOf('\n---', 4);
@@ -79,6 +82,17 @@ function buildPost(filename, raw) {
 function main() {
   ensureDir(NOTES_DIR);
   ensureDir(POSTS_DIR);
+
+  // 把 _notes/img/ 里的本地图片搬进 source/img/（与笔记里的相对路径引用配套）
+  const localImgDir = path.join(NOTES_DIR, 'img');
+  if (fs.existsSync(localImgDir)) {
+    ensureDir(path.join(ROOT, '..', 'source', 'img'));
+    const imgs = fs.readdirSync(localImgDir).filter((f) => /\.(png|jpe?g|gif|webp|svg)$/i.test(f));
+    for (const img of imgs) {
+      fs.copyFileSync(path.join(localImgDir, img), path.join(ROOT, '..', 'source', 'img', img));
+    }
+    if (imgs.length) console.log(`🖼️  已同步 ${imgs.length} 张本地图片到 source/img/`);
+  }
 
   const files = fs.readdirSync(NOTES_DIR).filter((f) => f.toLowerCase().endsWith('.md'));
   if (files.length === 0) {
