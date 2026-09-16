@@ -1,7 +1,7 @@
 ---
 title: 关于
 date: 2026-09-15 20:22:00
-type: about
+layout: about
 ---
 
 # 关于
