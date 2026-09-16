@@ -1,0 +1,955 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=light>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/blog/img/avatar-placeholder.svg">
+  <link rel="icon" href="/blog/img/avatar-placeholder.svg">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Fantasea">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="本篇整理自 PortSwigger Web Security Academy 的学习内容，覆盖身份认证漏洞（暴力破解、双因素认证绕过）、SSRF 两类攻击场景，以及文件上传漏洞与 Web Shell，附实操截图。  一、暴力破解攻击暴力破解攻击是指攻击者通过反复试验来猜测有效的用户凭证。这些攻击通常通过用户名和密码的单词列表进行自动化。通过自动化这一过程，尤其是使用专用工具，攻击者能够高速进行大">
+<meta property="og:type" content="article">
+<meta property="og:title" content="服务器漏洞之身份认证SSRF与文件上传漏洞">
+<meta property="og:url" content="https://fantasea123.github.io/blog/2026/09/16/20260916-%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%BC%8F%E6%B4%9E%E4%B9%8B%E8%BA%AB%E4%BB%BD%E8%AE%A4%E8%AF%81SSRF%E4%B8%8E%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E6%BC%8F%E6%B4%9E/index.html">
+<meta property="og:site_name" content="Fantasea&#39;s blog">
+<meta property="og:description" content="本篇整理自 PortSwigger Web Security Academy 的学习内容，覆盖身份认证漏洞（暴力破解、双因素认证绕过）、SSRF 两类攻击场景，以及文件上传漏洞与 Web Shell，附实操截图。  一、暴力破解攻击暴力破解攻击是指攻击者通过反复试验来猜测有效的用户凭证。这些攻击通常通过用户名和密码的单词列表进行自动化。通过自动化这一过程，尤其是使用专用工具，攻击者能够高速进行大">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fantasea123.github.io/blog/img/auth-ssrf-upload-1.png">
+<meta property="og:image" content="https://fantasea123.github.io/blog/img/auth-ssrf-upload-2.png">
+<meta property="og:image" content="https://fantasea123.github.io/blog/img/auth-ssrf-upload-3.png">
+<meta property="og:image" content="https://fantasea123.github.io/blog/img/auth-ssrf-upload-4.png">
+<meta property="og:image" content="https://fantasea123.github.io/blog/img/auth-ssrf-upload-5.png">
+<meta property="og:image" content="https://fantasea123.github.io/blog/img/auth-ssrf-upload-6.png">
+<meta property="og:image" content="https://fantasea123.github.io/blog/img/auth-ssrf-upload-7.png">
+<meta property="og:image" content="https://fantasea123.github.io/blog/img/auth-ssrf-upload-8.png">
+<meta property="og:image" content="https://fantasea123.github.io/blog/img/auth-ssrf-upload-9.png">
+<meta property="og:image" content="https://fantasea123.github.io/blog/img/auth-ssrf-upload-10.png">
+<meta property="og:image" content="https://fantasea123.github.io/blog/img/auth-ssrf-upload-11.png">
+<meta property="article:published_time" content="2026-09-16T12:51:19.000Z">
+<meta property="article:modified_time" content="2026-09-16T12:51:35.495Z">
+<meta property="article:author" content="Fantasea">
+<meta property="article:tag" content="Web安全">
+<meta property="article:tag" content="PortSwigger">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://fantasea123.github.io/blog/img/auth-ssrf-upload-1.png">
+  
+  
+  
+  <title>服务器漏洞之身份认证SSRF与文件上传漏洞 - Fantasea&#39;s blog</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/blog/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/blog/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/blog/css/highlight-dark.css" />
+  
+
+
+
+  
+<link rel="stylesheet" href="/blog/css/custom.css">
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"fantasea123.github.io","root":"/blog/","version":"1.9.9","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"expand_all":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":false,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"openkounter":{"server_url":"https://open-kounter.mintimate.cn","path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/blog/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/blog/js/utils.js" ></script>
+  <script  src="/blog/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/blog/">
+      <strong>Fantasea&#39;s blog</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content (desktop) -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/blog/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/blog/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/blog/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/blog/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/blog/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- Mobile grid menu overlay -->
+<div id="mobile-grid-menu" class="d-lg-none">
+  <div class="mobile-grid-menu-inner">
+    <div class="container">
+      <div class="row">
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/blog/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-home-fill"></i>
+                  <span>首页</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/blog/archives/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-archive-fill"></i>
+                  <span>归档</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/blog/categories/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-category-fill"></i>
+                  <span>分类</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/blog/tags/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-tags-fill"></i>
+                  <span>标签</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/blog/about/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-user-fill"></i>
+                  <span>关于</span>
+                </div>
+              </a>
+            </div>
+          
+        
+        
+          <div class="col-4 mobile-grid-cell" id="mobile-search-btn">
+            <a href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <div class="mobile-grid-item">
+                <i class="iconfont icon-search"></i>
+                <span>搜索</span>
+              </div>
+            </a>
+          </div>
+        
+        
+          <div class="col-4 mobile-grid-cell" id="mobile-color-toggle-btn"
+               data-label-light="开灯"
+               data-label-dark="关灯">
+            <a href="javascript:;" aria-label="Color Toggle">
+              <div class="mobile-grid-item">
+                <i class="iconfont icon-dark" id="mobile-color-toggle-icon"></i>
+                <span id="mobile-color-toggle-label">关灯</span>
+              </div>
+            </a>
+          </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/blog/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="服务器漏洞之身份认证SSRF与文件上传漏洞"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-09-16 20:51" pubdate>
+          2026年9月16日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          5.2k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          44 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">服务器漏洞之身份认证SSRF与文件上传漏洞</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>本篇整理自 PortSwigger Web Security Academy 的学习内容，覆盖身份认证漏洞（暴力破解、双因素认证绕过）、SSRF 两类攻击场景，以及文件上传漏洞与 Web Shell，附实操截图。</p>
+</blockquote>
+<h2 id="一、暴力破解攻击"><a href="#一、暴力破解攻击" class="headerlink" title="一、暴力破解攻击"></a>一、暴力破解攻击</h2><p>暴力破解攻击是指攻击者通过反复试验来猜测有效的用户凭证。这些攻击通常通过用户名和密码的单词列表进行自动化。通过自动化这一过程，尤其是使用专用工具，攻击者能够高速进行大量登录尝试。</p>
+<p>暴力破解并不总是完全随机猜测用户名和密码。通过利用基本逻辑或公开知识，攻击者可以微调暴力破解攻击，做出更有根据的猜测，这大大提高了此类攻击的效率。依赖基于密码登录的唯一身份验证方式的网站，如果没有实施足够的暴力破解防护，可能会极易受到攻击。</p>
+<h3 id="实操"><a href="#实操" class="headerlink" title="实操"></a>实操</h3><p><strong>第一步：枚举用户名</strong></p>
+<p>先随机输入用户名和密码，用 Burp 抓包。</p>
+<p>抓取登录的 POST 请求发送到 Intruder，Sniper 模式下只给 username 参数的值加 <code>§</code> 标记，password 保留任意静态值。加载候选用户名字典后 Start attack。</p>
+<p>攻击结束后按 <strong>Length 列</strong>排序，发现一条响应明显与其他不同。</p>
+<p><img src="/blog/img/auth-ssrf-upload-1.png" alt="暴力破解实操（一）：Intruder 枚举用户名，按响应长度定位有效用户名"></p>
+<p><strong>第二步：爆破密码</strong></p>
+<p>Clear <code>§</code> 后固定用户名，改为给 password 参数加标记，字典换成候选密码列表，再次 Start attack。</p>
+<p>攻击结束后看 <strong>Status 列</strong>。</p>
+<p><img src="/blog/img/auth-ssrf-upload-2.png" alt="暴力破解实操（二）：Intruder 爆破密码，按状态码定位成功登录"></p>
+<h2 id="二、绕过双因素认证"><a href="#二、绕过双因素认证" class="headerlink" title="二、绕过双因素认证"></a>二、绕过双因素认证</h2><p>有时，双因素认证（2FA）的实现存在缺陷，甚至可以被完全绕过。</p>
+<p>如果用户先被要求输入密码，随后在<strong>另一个单独的页面上</strong>被要求输入验证码，那么在输入验证码之前，用户实际上就已经处于”已登录”状态了。这种情况下，值得测试一下：<strong>完成第一步认证（输完密码）后，能否直接跳转到”仅限登录后”的页面</strong>。偶尔你会发现，网站在加载这些页面前根本没有校验用户是否完成了第二步。</p>
+<h3 id="实操：2FA-简单绕过"><a href="#实操：2FA-简单绕过" class="headerlink" title="实操：2FA 简单绕过"></a>实操：2FA 简单绕过</h3><p>输入目标账户和密码，发现存在二次认证。</p>
+<p><img src="/blog/img/auth-ssrf-upload-3.png" alt="2FA 绕过实操（一）：完成密码认证后出现二次验证页面"></p>
+<p>直接手动修改 URL 跳转到登录后的页面。</p>
+<p><img src="/blog/img/auth-ssrf-upload-4.png" alt="2FA 绕过实操（二）：直接 URL 导向跳过验证码，成功进入登录后页面"></p>
+<h2 id="三、SSRF：服务端请求伪造"><a href="#三、SSRF：服务端请求伪造" class="headerlink" title="三、SSRF：服务端请求伪造"></a>三、SSRF：服务端请求伪造</h2><h3 id="什么是-SSRF"><a href="#什么是-SSRF" class="headerlink" title="什么是 SSRF"></a>什么是 SSRF</h3><p>服务端请求伪造（Server-side request forgery，SSRF）是一种 Web 安全漏洞，允许攻击者<strong>诱使服务端应用向非预期的位置发起请求</strong>。</p>
+<p>在典型的 SSRF 攻击中，攻击者可能让服务器去连接<strong>组织内部基础设施中仅限内网访问的服务</strong>；在另一些情况下，攻击者还能强制服务器连接<strong>任意的外部系统</strong>，从而泄露敏感数据，比如认证凭据。</p>
+<p>简单来说，如果这个服务器有某些文件下载传输功能（服务器一般一只脚在内网，一只脚在外网），攻击者可以让服务器访问内网里的地址。因为服务器在内网里一般是畅通的，攻击者可以借助服务器在内网的访问得到数据。</p>
+<h3 id="针对服务器本机的-SSRF"><a href="#针对服务器本机的-SSRF" class="headerlink" title="针对服务器本机的 SSRF"></a>针对服务器本机的 SSRF</h3><p>在针对服务器的 SSRF 攻击中，攻击者使应用程序通过环回网络接口向托管该应用的服务器发送 HTTP 请求。这通常涉及提供一个带有如下主机名的 URL：<code>127.0.0.1</code>（指向环回适配器的预留 IP 地址）或 <code>localhost</code>（同一适配器常用的名称）。</p>
+<p>例如，想象一个购物应用，允许用户查看某商品在某家门店是否有库存。为了提供库存信息，应用程序必须查询各种后端 REST API。它通过前端 HTTP 请求将 URL 传递给相关的后端 API 端点来实现这一点。当用户查看某项商品的库存状态时，浏览器会发出以下请求：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs http"><span class="hljs-keyword">POST</span> <span class="hljs-string">/product/stock</span> <span class="hljs-meta">HTTP/1.0</span><br><span class="hljs-attribute">Content-Type</span><span class="hljs-punctuation">: </span>application/x-www-form-urlencoded<br><span class="hljs-attribute">Content-Length</span><span class="hljs-punctuation">: </span>118<br><br><span class="language-apache"><span class="hljs-attribute">stockApi</span>=http://stock.weliketoshop.net:<span class="hljs-number">8080</span>/product/stock/check%<span class="hljs-number">3</span>FproductId%<span class="hljs-number">3</span>D6%<span class="hljs-number">26</span>storeId%<span class="hljs-number">3</span>D1</span><br></code></pre></td></tr></table></figure>
+
+<p>这会导致服务器向指定的 URL 发送请求，获取库存状态，并返回给用户。</p>
+<p>在这个例子中，攻击者可以修改请求，指定服务器本地的 URL：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs http"><span class="hljs-keyword">POST</span> <span class="hljs-string">/product/stock</span> <span class="hljs-meta">HTTP/1.0</span><br><span class="hljs-attribute">Content-Type</span><span class="hljs-punctuation">: </span>application/x-www-form-urlencoded<br><span class="hljs-attribute">Content-Length</span><span class="hljs-punctuation">: </span>118<br><br><span class="language-freedesktop"><span class="hljs-attr">stockApi</span><span class="hljs-operator">=</span>http://localhost/admin</span><br></code></pre></td></tr></table></figure>
+
+<p>服务器会获取 <code>/admin</code> 的内容并将其返回给用户。</p>
+<p>攻击者通常也可以直接访问 <code>/admin</code>，但管理功能一般只对已认证用户开放，这意味着攻击者看不到任何有价值的东西。然而，如果对 <code>/admin</code> 的请求<strong>来自本机</strong>，常规的访问控制就会被绕过：应用程序授予对管理功能的完全访问权限，因为请求看起来来自可信位置。</p>
+<p>应用为什么会这样表现——<strong>默认信任来自本机的请求</strong>？可能出于多种原因：</p>
+<ol>
+<li><strong>访问控制检查在另一个组件里。</strong> 这个组件位于应用服务器之前（比如反向代理）。当请求”绕回”服务器自身时（连接直接打到应用服务器，不再经过前置组件），检查就被跳过了。</li>
+<li><strong>灾难恢复预留的后门。</strong> 为了容灾，应用可能允许<strong>从本机发起的连接不经登录直接获得管理权限</strong>——万一管理员丢了凭据，还能从服务器上登进系统自救。这个设计的前提假设是：<strong>只有完全可信的人才会直接从服务器本机发起连接</strong>。</li>
+<li><strong>管理接口监听在不同端口上。</strong> 管理接口可能跑在主应用之外的另一个端口，用户根本无法直接访问到它。</li>
+</ol>
+<p>这种<strong>信任关系</strong>——来自本机的请求被区别对待、优于普通请求——往往使 SSRF 成为<strong>严重（critical）级别的漏洞</strong>。</p>
+<h3 id="实操：本机-SSRF"><a href="#实操：本机-SSRF" class="headerlink" title="实操：本机 SSRF"></a>实操：本机 SSRF</h3><p><img src="/blog/img/auth-ssrf-upload-5.png" alt="SSRF 实操（一）：库存查询接口将用户可控的 stockApi 参数交给服务端请求"></p>
+<p>将 stockApi 参数改为 <code>http://localhost/admin</code>，在返回的管理界面里找到了 <code>delete?username=carlos</code> 这样的删除用户接口。</p>
+<p><img src="/blog/img/auth-ssrf-upload-6.png" alt="SSRF 实操（二）：通过本机请求访问 /admin，绕过访问控制"></p>
+<h3 id="针对其他后端系统的-SSRF"><a href="#针对其他后端系统的-SSRF" class="headerlink" title="针对其他后端系统的 SSRF"></a>针对其他后端系统的 SSRF</h3><p>在某些情况下，应用服务器能够与一些<strong>用户无法直接访问到的后端系统</strong>交互。这些系统通常使用<strong>不可路由的私有 IP 地址</strong>。后端系统一般由<strong>网络拓扑结构</strong>保护着，因此它们的安全防护往往<strong>更薄弱</strong>。很多时候，内部后端系统包含敏感功能，<strong>任何能与之交互的人都可以不经认证直接访问</strong>。</p>
+<p>在前面的例子中，假设某个后端地址 <code>http://192.168.0.68/admin</code> 上有一个管理接口。攻击者可以提交以下请求来利用 SSRF 漏洞，访问该管理接口：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs http"><span class="hljs-keyword">POST</span> <span class="hljs-string">/product/stock</span> <span class="hljs-meta">HTTP/1.0</span><br><span class="hljs-attribute">Content-Type</span><span class="hljs-punctuation">: </span>application/x-www-form-urlencoded<br><span class="hljs-attribute">Content-Length</span><span class="hljs-punctuation">: </span>118<br><br><span class="language-freedesktop"><span class="hljs-attr">stockApi</span><span class="hljs-operator">=</span>http://192.168.0.68/admin</span><br></code></pre></td></tr></table></figure>
+
+<h3 id="实操：内网扫描"><a href="#实操：内网扫描" class="headerlink" title="实操：内网扫描"></a>实操：内网扫描</h3><p>利用 Intruder 对 <code>192.168.0.X:8080</code> 网段进行爆破，找到异常响应，扫出存活主机 <code>192.168.0.155:8080</code>。</p>
+<p><img src="/blog/img/auth-ssrf-upload-7.png" alt="内网 SSRF 实操（一）：Intruder 扫描内网网段，按响应长度区分存活主机"></p>
+<p><img src="/blog/img/auth-ssrf-upload-8.png" alt="内网 SSRF 实操（二）：在扫出的 192.168.0.155:8080 上发现管理接口"></p>
+<blockquote>
+<p><strong>两种 SSRF 的信任来源略有区别：</strong></p>
+<p>第一种信任原因是请求来自本机（<code>127.0.0.1</code> 或 <code>localhost</code>）；</p>
+<p>第二种信任原因是内网本身不设防，默认连接到内网的是可信的。</p>
+</blockquote>
+<h2 id="四、文件上传漏洞"><a href="#四、文件上传漏洞" class="headerlink" title="四、文件上传漏洞"></a>四、文件上传漏洞</h2><h3 id="什么是文件上传漏洞"><a href="#什么是文件上传漏洞" class="headerlink" title="什么是文件上传漏洞"></a>什么是文件上传漏洞</h3><p>文件上传漏洞是指 Web 服务器允许用户向其文件系统上传文件，却<strong>没有充分验证文件的名称、类型、内容或大小</strong>。如果不能正确执行这些限制，哪怕只是一个基础的图片上传功能，也可能被用来上传<strong>任意甚至危险的文件</strong>——包括能在服务端执行的脚本文件，从而实现<strong>远程代码执行（RCE）</strong>。</p>
+<p>在某些情况下，<strong>上传这个动作本身就足以造成危害</strong>；另一些攻击则需要<strong>后续发起一个针对该文件的 HTTP 请求</strong>，通常是为了触发服务器执行它。</p>
+<blockquote>
+<p>此类漏洞在 CTF 中是十分常见的题型。</p>
+</blockquote>
+<h3 id="文件上传漏洞是如何产生的"><a href="#文件上传漏洞是如何产生的" class="headerlink" title="文件上传漏洞是如何产生的"></a>文件上传漏洞是如何产生的</h3><p>考虑到文件上传的危险显而易见，真实网站里<strong>完全没有任何限制</strong>的情况很少见。更常见的情况是：开发者实现了一套<strong>自以为健壮的验证，但它要么本身就有缺陷，要么很容易被绕过</strong>。</p>
+<p>例如，开发者可能尝试用<strong>黑名单</strong>拦截危险的文件类型，但在检查文件扩展名时<strong>没有考虑到解析差异</strong>；而且和任何黑名单一样，很容易<strong>遗漏一些更冷门但依然危险的文件类型</strong>。</p>
+<p>另一些情况下，网站会通过验证某些<strong>属性</strong>来判断文件类型——而这些属性可以被攻击者用 Burp Proxy、Repeater 之类的工具<strong>轻易篡改</strong>。</p>
+<p>最终，即使是健壮的验证措施，也可能在构成网站的<strong>多台主机、多个目录之间执行得不一致</strong>，由此产生的<strong>差异（discrepancy）</strong>就可以被利用。</p>
+<p>文件上传漏洞有以下几类：</p>
+<p><img src="/blog/img/auth-ssrf-upload-9.png" alt="文件上传漏洞的分类"></p>
+<h3 id="文件类型验证的缺陷（Flawed-file-type-validation）"><a href="#文件类型验证的缺陷（Flawed-file-type-validation）" class="headerlink" title="文件类型验证的缺陷（Flawed file type validation）"></a>文件类型验证的缺陷（Flawed file type validation）</h3><p>普通表单用 <code>application/x-www-form-urlencoded</code>（纯文本编码），传不了二进制数据；文件上传必须用 **<code>multipart/form-data</code>**，请求体被 boundary（边界线）切分成多个格子，每格一个表单字段：</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs dart"><span class="hljs-title class_">Content</span>-<span class="hljs-title class_">Type</span>: multipart/form-data;boundary=----<span class="hljs-title class_">WebKitFormBoundaryXg7TvA8b9mKpL2qN</span><br>------<span class="hljs-title class_">WebKitFormBoundaryXg7TvA8b9mKpL2qN</span><br><span class="hljs-title class_">Content</span>-<span class="hljs-title class_">Disposition</span>: form-data; name=<span class="hljs-string">&quot;avatar&quot;</span>; filename=<span class="hljs-string">&quot;cat.png&quot;</span>   ← 文件名声明<br><span class="hljs-title class_">Content</span>-<span class="hljs-title class_">Type</span>: image/png    ← 类型声明<br>[二进制内容]<br><br>------<span class="hljs-title class_">WebKitFormBoundaryXg7TvA8b9mKpL2qN</span><br><span class="hljs-title class_">Content</span>-<span class="hljs-title class_">Disposition</span>: form-data; name=<span class="hljs-string">&quot;user&quot;</span><br>wiener<br>------<span class="hljs-title class_">WebKitFormBoundaryXg7TvA8b9mKpL2qN</span>--<br></code></pre></td></tr></table></figure>
+
+<p><strong><code>filename</code>、<code>Content-Type</code>、文件内容，全部由发送方填写。</strong></p>
+<h4 id="三个字段"><a href="#三个字段" class="headerlink" title="三个字段"></a>三个字段</h4><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>起作用的阶段</th>
+<th>决定什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Content-Type</td>
+<td>只在上传检查时</td>
+<td>门卫放不放</td>
+</tr>
+<tr>
+<td>filename（扩展名）</td>
+<td>存储 + 执行时</td>
+<td>服务器<strong>怎么对待</strong>这个文件（是否当代码执行）</td>
+</tr>
+<tr>
+<td>内容</td>
+<td>执行时</td>
+<td>执行后<strong>发生什么</strong></td>
+</tr>
+</tbody></table>
+<h3 id="网站的验证手法与绕过"><a href="#网站的验证手法与绕过" class="headerlink" title="网站的验证手法与绕过"></a>网站的验证手法与绕过</h3><p><strong>① 谎报 Content-Type</strong>：服务器只信请求里声明的 <code>image/jpeg</code>。</p>
+<p><strong>② 解析差异 &#x2F; 漏网扩展名</strong>：<code>.php</code> 被拦了，还有 <code>.php5</code>、<code>.phtml</code>、<code>.phar</code>。</p>
+<p><strong>③ 图片马</strong>：服务器检查文件头字节（PNG 是 <code>89 50 4E 47</code>），那就拼一个”真图片头 + 尾部 PHP 代码”的合成文件。</p>
+<h3 id="Web-Shell-与一句话木马"><a href="#Web-Shell-与一句话木马" class="headerlink" title="Web Shell 与一句话木马"></a>Web Shell 与一句话木马</h3><p>文件上传漏洞中危害最大的是 Web Shell（网页木马），最简单的形式是一句话木马。</p>
+<p>网站允许你上传<strong>服务端脚本</strong>（如 PHP、Java、Python 文件），<strong>并且服务器配置为把它们当代码执行</strong>。这种情况下，在服务器上创建自己的 Web Shell 就是轻而易举的事。</p>
+<p><strong>Web Shell（网页木马）</strong>：一种恶意脚本，攻击者只需<strong>向正确的端点发送 HTTP 请求</strong>，就能在远程 Web 服务器上<strong>执行任意命令</strong>。</p>
+<p>如果成功上传了 Web Shell，你就<strong>实际上完全控制了服务器</strong>——可以读写任意文件、窃取敏感数据，甚至<strong>以这台服务器为跳板</strong>攻击内部基础设施和网络外的其他服务器。</p>
+<p>例如，下面这个 PHP 单行代码可以读取服务器文件系统中的任意文件：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs php"><span class="hljs-meta">&lt;?php</span> <span class="hljs-keyword">echo</span> <span class="hljs-title function_ invoke__">file_get_contents</span>(<span class="hljs-string">&#x27;/path/to/target/file&#x27;</span>); <span class="hljs-meta">?&gt;</span><br></code></pre></td></tr></table></figure>
+
+<p>上传后，只要请求这个恶意文件，目标文件的内容就会出现在响应里。</p>
+<p>一个更通用的 Web Shell 长这样：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs php"><span class="hljs-meta">&lt;?php</span> <span class="hljs-keyword">echo</span> <span class="hljs-title function_ invoke__">system</span>(<span class="hljs-variable">$_GET</span>[<span class="hljs-string">&#x27;command&#x27;</span>]); <span class="hljs-meta">?&gt;</span><br></code></pre></td></tr></table></figure>
+
+<ul>
+<li><code>$_GET[&#39;command&#39;]</code>：从 URL 查询参数里取值——<strong>命令是攻击者现场指定的</strong>；</li>
+<li><code>system()</code>：PHP 内置函数，把字符串当<strong>操作系统命令</strong>执行，返回输出；</li>
+<li><code>echo</code>：把命令输出回显到 HTTP 响应里。</li>
+</ul>
+<p>访问 <code>exploit.php?command=id</code> 时，服务器实际执行的是 <code>id</code>（Linux 命令，显示当前用户身份），输出直接回到你的浏览器。把 <code>command</code> 换成 <code>cat /etc/passwd</code>、<code>ls /</code>、<code>whoami</code>……<strong>整个服务器的命令行就在你的地址栏里了</strong>。</p>
+<h3 id="实操：一句话木马"><a href="#实操：一句话木马" class="headerlink" title="实操：一句话木马"></a>实操：一句话木马</h3><p>创建 PHP 文件并上传：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs php"><span class="hljs-meta">&lt;?php</span> <span class="hljs-keyword">echo</span> <span class="hljs-title function_ invoke__">system</span>(<span class="hljs-variable">$_GET</span>[<span class="hljs-string">&#x27;command&#x27;</span>]); <span class="hljs-meta">?&gt;</span><br></code></pre></td></tr></table></figure>
+
+<p>通过 Linux 指令列目录：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">GET /files/avatars/php-lab1.php?<span class="hljs-built_in">command</span>=<span class="hljs-built_in">ls</span>+/home/carlos/secret HTTP/2<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>原指令是 <code>GET /files/avatars/php-lab1.php?command=ls /home/carlos/secret HTTP/2</code>，但在 URL 里空格需要转义。两种写法：</p>
+<p><code>%20</code> 是空格的 URL 编码；<code>+</code> 在查询参数里等效。</p>
+</blockquote>
+<p><img src="/blog/img/auth-ssrf-upload-10.png" alt="Web Shell 实操（一）：上传 PHP 一句话木马，用 ls 命令列出目标目录"></p>
+<p>查看文件内容：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">GET /files/avatars/php-lab1.php?<span class="hljs-built_in">command</span>=<span class="hljs-built_in">cat</span>%20/home/carlos/secret HTTP/2<br></code></pre></td></tr></table></figure>
+
+<p><img src="/blog/img/auth-ssrf-upload-11.png" alt="Web Shell 实操（二）：cat 读取 /home/carlos/secret 文件内容"></p>
+<p>因为 <code>system</code> 和 <code>echo</code> 的原因，答案会输出两次。</p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/blog/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" class="category-chain-item">学习笔记</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/blog/tags/Web%E5%AE%89%E5%85%A8/" class="print-no-link">#Web安全</a>
+      
+        <a href="/blog/tags/PortSwigger/" class="print-no-link">#PortSwigger</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>服务器漏洞之身份认证SSRF与文件上传漏洞</div>
+      <div>https://fantasea123.github.io/blog/2026/09/16/20260916-服务器漏洞之身份认证SSRF与文件上传漏洞/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>Fantasea</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年9月16日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/blog/2026/09/15/20260915-%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%BC%8F%E6%B4%9E%E4%B9%8B%E7%9B%AE%E5%BD%95%E9%81%8D%E5%8E%86%E4%B8%8E%E8%AE%BF%E9%97%AE%E6%8E%A7%E5%88%B6/" title="服务器漏洞之目录遍历与访问控制">
+                        <span class="hidden-mobile">服务器漏洞之目录遍历与访问控制</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+      <span>Fantasea's blog · 记录学习与生活</span>
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/blog/js/events.js" ></script>
+<script  src="/blog/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    function isExpandAllEnabled() {
+      return CONFIG.toc && CONFIG.toc.expand_all === true;
+    }
+    function expandAllToc() {
+      if (!isExpandAllEnabled()) { return; }
+      jQuery('#toc-body .tocbot-is-collapsed').removeClass('tocbot-is-collapsed');
+    }
+    function updateTocToggle($li, $childList) {
+      var $toggle = $li.children('.toc-toggle');
+      if ($toggle.length === 0) { return; }
+      var collapsed = $childList.hasClass('tocbot-is-collapsed');
+      $toggle
+        .toggleClass('toc-toggle-collapsed', collapsed)
+        .toggleClass('toc-toggle-expanded', !collapsed);
+    }
+    function bindTocToggle() {
+      if (!isExpandAllEnabled()) { return; }
+      jQuery('#toc-body .toc-list-item').each(function() {
+        var $li = jQuery(this);
+        var $childList = $li.children('ol');
+        if ($childList.length === 0) {
+          if ($li.children('.toc-toggle').length === 0) {
+            $li.prepend('<span class="toc-toggle toc-toggle-placeholder" aria-hidden="true">›</span>');
+          }
+          return;
+        }
+
+        if ($li.children('.toc-toggle').length === 0) {
+          $li.prepend('<span class="toc-toggle toc-toggle-expanded" aria-hidden="true">›</span>');
+        }
+        updateTocToggle($li, $childList);
+      });
+      jQuery('#toc-body').off('click.tocToggle').on('click.tocToggle', '.toc-toggle', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var $li = jQuery(this).parent('.toc-list-item');
+        var $childList = $li.children('ol');
+        if ($childList.length === 0) { return; }
+        $childList.toggleClass('tocbot-is-collapsed');
+        updateTocToggle($li, $childList);
+      });
+      if (!window.__tocToggleObserver) {
+        window.__tocToggleObserver = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type !== 'attributes' || mutation.attributeName !== 'class') { return; }
+            var $list = jQuery(mutation.target);
+            var $li = $list.parent('.toc-list-item');
+            if ($li.length === 0) { return; }
+            updateTocToggle($li, $list);
+          });
+        });
+        jQuery('#toc-body ol').each(function() {
+          window.__tocToggleObserver.observe(this, { attributes: true });
+        });
+      }
+    }
+    var tocConfig = Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc);
+    if (isExpandAllEnabled()) {
+      tocConfig.collapseDepth = 6;
+    }
+    window.tocbot.init(tocConfig);
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+    expandAllToc();
+    bindTocToggle();
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+        expandAllToc();
+        bindTocToggle();
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/blog/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/blog/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
