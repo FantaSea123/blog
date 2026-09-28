@@ -48,7 +48,7 @@
 <meta property="og:image" content="https://fantasea123.github.io/blog/img/sql-adv-20.png">
 <meta property="og:image" content="https://fantasea123.github.io/blog/img/sql-adv-21.png">
 <meta property="article:published_time" content="2026-09-28T14:14:40.000Z">
-<meta property="article:modified_time" content="2026-09-28T14:15:05.588Z">
+<meta property="article:modified_time" content="2026-09-28T14:26:53.589Z">
 <meta property="article:author" content="Fantasea">
 <meta property="article:tag" content="Web安全">
 <meta property="article:tag" content="PortSwigger">
@@ -704,7 +704,7 @@
 <p><img src="/blog/img/sql-adv-20.png" alt="图20"></p>
 <p>拼接出用户名和密码：</p>
 <p><img src="/blog/img/sql-adv-21.png" alt="图21"></p>
-<p>黑名单测绘：’ 拦 &#x2F; &#39; 过；UNION 拦 &#x2F; &#x55;NION 过；SELECT 拦 &#x2F; &#x53;ELECT 过。</p>
+<p>黑名单测绘：<code>&#39;</code> 拦 &#x2F; <code>&amp;#39;</code> 过；<code>UNION</code> 拦 &#x2F; <code>&amp;#x55;NION</code> 过；<code>SELECT</code> 拦 &#x2F; <code>&amp;#x53;ELECT</code> 过。</p>
 <h2 id="12-二次注入"><a href="#12-二次注入" class="headerlink" title="12. 二次注入"></a>12. 二次注入</h2><p>第一次入库时是合法字符串（参数化写入原样保存），第二次被拼进 SQL 才生效。注册用户名 <code>admin&#39;--</code>：入库时 ‘ 只是数据；日后改密码时应用从库里读出用户名拼接：</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-keyword">UPDATE</span> users <span class="hljs-keyword">SET</span> password<span class="hljs-operator">=</span><span class="hljs-string">&#x27;新密码&#x27;</span><br><span class="hljs-keyword">WHERE</span> username<span class="hljs-operator">=</span><span class="hljs-string">&#x27;admin&#x27;</span><span class="hljs-comment">--&#x27; AND password=&#x27;旧密码&#x27;</span><br></code></pre></td></tr></table></figure>
 
